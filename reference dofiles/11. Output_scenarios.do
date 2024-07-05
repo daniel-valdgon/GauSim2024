@@ -28,14 +28,13 @@ if $load_scenario == 0 & $save_scenario == 0 {
 }
 
 *Macros for household values 
-// This locals are different from those in dofile 1, please check that they contain what's needed. 
 	
 	local tax dirtax_total income_tax trimf /*csp_ipr csp_fnr*/ csh_css csh_ipm csh_mutsan new_poor old_poor sscontribs_total
 	local indtax indtax_total excise_taxes TVA_direct TVA_indirect Tax_TVA
 	local inkind education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne am_CMU_progs inktransf_total
-	local transfer dirtransf_total am_bourse am_Cantine am_BNSF am_subCMU income_tax_reduc rev_pubstu rev_universel 
+	local transfer dirtransf_total am_bourse am_Cantine am_BNSF am_subCMU income_tax_reduc
 	local subsidies subsidy_total subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_fuel subsidy_eau subsidy_eau_direct subsidy_eau_indirect subsidy_agric subsidy_elec
-	
+	*local list_item_stats " rice water_elect hosp exempted aliment_exem aliment_exem_infor non_aliment_exem non_aliment_exem_infor" // we repeat this line in order to make this do-file independent 
 
 	local income ymp yn yd yc yf /*depan*/ // before I have a local here but it presented some problems 
 	local concs `tax' `indtax' `transfer' `inkind' `income' `subsidies'
@@ -59,7 +58,7 @@ if $load_scenario == 0 & $save_scenario == 0 {
 *===============================================================================
 
 foreach rank in ymp yn yd yc yf {
-	use "$data_out/output", clear
+	use "$data_out\output", clear
 
 	foreach x of local concs_pc {
 		covconc `x' [aw=pondih] , rank(`rank'_pc)	//gini and concentration coefficients
@@ -92,7 +91,7 @@ foreach rank in ymp yn yd yc yf {
 	}	
 	order `rank'_centile_pc, first
 	
-	export excel using "$xls_out", sheet("conc`rank'_${sheetname}") sheetreplace first(variable)
+	export excel using "$xls_sn", sheet("conc`rank'_${sheetname}") sheetreplace first(variable)
 	*export excel using "$xls_sn", sheet("concentration") sheetreplace first(variable)
 	
 }
@@ -104,7 +103,7 @@ foreach rank in ymp yn yd yc yf {
 {
 * net cash ymp
 
-	use "$data_out/output", clear
+	use "$data_out\output", clear
 	
 	foreach x in `tax' `indtax'  {
 		gen share_`x'_pc= -`x'_pc/ymp_pc
@@ -128,7 +127,7 @@ foreach rank in ymp yn yd yc yf {
 
 * net cash yd 	
 	
-	use "$data_out/output", clear
+	use "$data_out\output", clear
 	
 	foreach x in `tax' `indtax'  {
 		gen share_`x'_pc= -`x'_pc/yd_pc
@@ -158,7 +157,7 @@ foreach rank in ymp yn yd yc yf {
 
 *run "$theado\sp_groupfunction.ado"
 
-use "$data_out/output",  clear
+use "$data_out\output",  clear
 		
 		*Gabriela's 2022 suggestions for marginal contribution calculations:
 		// (DV) For taxes ymp_pc is the counterfactual withouth the policy
@@ -199,7 +198,7 @@ save `poverty'
 		*Mobility matrix:Trans. Matrix (with respect to the baseline) 
 *===============================================================================
 	
-use "$data_out/output_ref",  clear	
+use "$data_out\output_ref",  clear	
 	
 // we have to manually generate percentiles 
 
@@ -246,7 +245,7 @@ rename yc_deciles_pc yc_deciles_pc_ref
 
 // merge simu base 
 
-merge 1:1 hhid using "$data_out/output" , keepusing(pondih yc_pc) nogen
+merge 1:1 hhid using "$data_out\output" , keepusing(pondih yc_pc) nogen
 
 // clasify in baseline percentiles 
 
@@ -304,7 +303,7 @@ save `trans'
 	
 	* All 
 * benefits, coverage beneficiaries by all	
-	use "$data_out/output",  clear	
+	use "$data_out\output",  clear	
 
 	sp_groupfunction [aw=pondih], benefits(`concs_pc') mean(`concs_pc') coverage(`concs_pc') beneficiaries(`concs_pc')  by(all)
 	gen deciles_pc=0
@@ -312,7 +311,7 @@ save `trans'
 	save `theall'
 
 * benefits, coverage beneficiaries by deciles (ymp)	
-	use "$data_out/output",  clear
+	use "$data_out\output",  clear
 	
 	sp_groupfunction [aw=pondih], benefits(`concs_pc') mean(`concs_pc') coverage(`concs_pc') beneficiaries(`concs_pc')  by(deciles_pc)
 *adding previous ones 	
@@ -326,7 +325,7 @@ save `trans'
 	tempfile aux1
 	save `aux1'
 * benefits, coverage beneficiaries by yd
-	use "$data_out/output",  clear	
+	use "$data_out\output",  clear	
 	
 	
 	sp_groupfunction [aw=pondih], benefits(`concs_pc') mean(`concs_pc') coverage(`concs_pc') beneficiaries(`concs_pc')  by(yd_deciles_pc)
@@ -341,7 +340,7 @@ save `trans'
 	append using `trans'
 	
 	
-	export excel "$xls_out", sheet("all${sheetname}" ) sheetreplace first(variable)
+	export excel "$xls_sn", sheet("all${sheetname}" ) sheetreplace first(variable)
 	*export excel "$xls_sn", sheet("all" ) sheetreplace first(variable)
 
 

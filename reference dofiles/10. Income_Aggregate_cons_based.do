@@ -27,7 +27,7 @@ Check new poverty estimates
 *****************************************************************************
 
 
-use "$presim/01_menages.dta", clear
+use "$data_sn/ehcvm_conso_SEN2018_menage.dta", clear
 
 /* Disposable Income in the gross up */
 gen double yd_pre=round(dtot/hhsize,0.01)
@@ -55,12 +55,11 @@ merge 1:1 hhid using `Transfers_InKind' , nogen
 *All policies, regarless of them being taxes or subsidies, should be positive 
 
 *Gross market income that is going to be used as basis of all calculations:
-*merge 1:1 hhid using "$presim/gross_ymp_pc.dta" , nogen
-gen ymp_pc=yd_pre
+merge 1:1 hhid using "$data_sn/gross_ymp_pc.dta" , nogen
 
 	local Directaxes 		"income_tax trimf"
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
-	local DirectTransfers   "am_bourse am_Cantine am_BNSF am_subCMU rev_pubstu rev_universel" // (Madi) here I added rev_pubstu rev_universel for UBI or transfers to public school students
+	local DirectTransfers   "am_bourse am_Cantine am_BNSF am_subCMU"
 	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect subsidy_agric"
 	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"
 	local InKindTransfers	"education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne" //(AGV) Note that  am_sesame am_moin5 am_cesarienne are created in the direct transfers file, but they act more like in kind transfers
@@ -136,10 +135,7 @@ replace yf_pc=0 if yf_pc==.
 replace yf_pc=0 if yf_pc<0
 label var yf_pc "Final Income per capita"
 
-*if ("$country" == "SEN") {
-*	merge 1:1 hhid using "$presim\ehcvm_welfare_SEN2018.dta" , keepusing(zref) nogen // THis is country specific for Senegal, zref should be taken from the same data, and from zr
-*}
-
+merge 1:1 hhid using "$data_sn\ehcvm_welfare_SEN2018.dta" , keepusing(zref) nogen
 
 * Some results 
 
@@ -180,19 +176,15 @@ gen `var'_pc= `var'/hhsize
 
 // international pov lines
 
-
+*2011 PPP:
+*gen line_1=179514.1606
+*gen line_2=302339.6389
+*gen line_3=519646.2543
 
 *2017 PPP
-if ("$country" == "SEN") {
-	
-*2011 PPP:
-gen line_1=179514.1606
-gen line_2=302339.6389
-gen line_3=519646.2543
-
 
 preserve
-	use "$presim/s_s02.dta", clear
+	use "$data_sn/s02_me_SEN2018.dta", clear
 	keep hhid s00q23a s00q24a s00q25a s00q23b s00q24b s00q25b
 	duplicates drop
 	tempfile dates
@@ -231,82 +223,29 @@ replace ipc_month_yr_svy_17=1.009150417 if month==5
 replace ipc_month_yr_svy_17=1.013347483 if month==6
 replace ipc_month_yr_svy_17=1.01598285 if month==7
 
-foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
-	gen test=1 if `var'<=zref
-	recode test .= 0
-	noi tab test [iw=hhweight*hhsize]
-	drop test
-}
 
-}
-
-if ("$country" == "MRT") {
-
-* MRT: i2017 - 1.05, i2018 - 0.65, i2019 - 0.98. ccpi_a
-* MRT: i2017 - 3.0799999,	i2018 - 4.2035796. fcpi_a
-* MRT: i2017 - 2.269, i2018 - 3.07. hcpi_a
-* MRT Inflation according to WorldBank Data Dashboard. 2017 - 2.3, 2018 - 3.1
-* Country specific...
-
-local ppp17 = 12.4452560424805
-local inf17 = 2.3
-local inf18 = 3.1
-local inf19 = 2.3
-cap drop line_1 line_2 line_3
-gen line_1=2.15*365*`ppp17'*`inf17'*`inf18'*`inf19'
-gen line_2=3.65*365*`ppp17'*`inf17'*`inf18'*`inf19'
-gen line_3=6.85*365*`ppp17'*`inf17'*`inf18'*`inf19'
-
-foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
-	gen test=1 if `var'<=zref
-	recode test .= 0
-	noi tab test [iw=hhweight*hhsize]
-	drop test
-}
-
-}
-
-if ("$country" == "GMB") {
-
-local ppp16 = 14.4826145172119  // PPP conversion factor, GDP (LCU per international $) 2016
-local inf17 = 2.3
-local inf18 = 3.1
-local inf19 = 2.3
-cap drop line_1 line_2 line_3
-gen line_1=2.15*365*`ppp16'
-gen line_2=3.65*365*`ppp16'
-gen line_3=6.85*365*`ppp16'
+gen line_1=2.15*365*238.57769775*ipc_month_yr_svy_17
+gen line_2=3.65*365*238.57769775*ipc_month_yr_svy_17
+gen line_3=6.85*365*238.57769775*ipc_month_yr_svy_17
 
 
-foreach var in /*line_1 line_2 line_3*/ yd_pc yc_pc  {
-	gen test=1 if `var'<=zref
-	recode test .= 0
-	noi tab test [iw=hhweight*hhsize]
-	drop test
-}
 
 
-}
 save "$data_out/output.dta", replace
 
 
-if "$scenario_name_save" == "Ref_2020_GMB" & $save_scenario ==1 {
+if "$scenario_name_save" == "Ref_2018" & $save_scenario ==1 {
 	save "$data_out/output_ref.dta", replace
 }
 
-** New poor and old poor using _ref and selected scenario 
+** New poor and old poor using _ref and selected scenario
 
 use "$data_out/output.dta" , clear
 
 
 rename poor poor_simu
 
-/*
-if ("$country" == "GMB") {
-	destring hhid, replace
-}
-*/
-merge 1:1 hhid using "$data_out/output_ref"  , keepusing(poor) nogen
+merge 1:1 hhid using "$data_out\output_ref"  , keepusing(poor) nogen
 
 rename poor poor_ref 
 
@@ -315,7 +254,7 @@ gen new_poor_pc=  poor_simu==1 & poor_ref==0
 gen old_poor_pc=  poor_simu==0 & poor_ref==1
 sort hhid
 
-cap drop depan // Just changed...
+
 gen depan=achats_avec_VAT
 gen depan_pc=depan/hhsize
 
