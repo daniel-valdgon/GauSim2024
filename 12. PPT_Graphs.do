@@ -67,8 +67,8 @@
 
 		* New Params
 		global xls_out    	"${path}/03_Tool/Graphs_${country}.xlsx" 
-		global sheetname "Ref_2020_GMB VAT_NoExempt_GMB_2020 INF_DES10_GMB_2020"
-		global nsim 3
+		global sheetname "Ref_2020_GMB VAT_NoExempt_GMB_2020 INF_DES10_GMB_2020 VAT_foodexempt_GMB"
+		global nsim 4
 	}
 	
 	
@@ -149,8 +149,8 @@
 	** plot in Excel 
 	preserve
 	drop Exempted
-        global cell = "B128"
-        export excel using "$xls_out", sheet("Display", modify) first(variable) cell($cell ) keepcellfmt
+        global cell = "B2"
+        export excel using "$xls_out", sheet("fig_1", modify) first(variable) cell($cell ) keepcellfmt
 	restore
    
    
@@ -165,8 +165,8 @@
 	gen percent = (Exempted/total)*100
 	keep percent deciles_pc
 
-        global cell = "B146"
-        export excel using "$xls_out", sheet("Display", modify) first(variable) cell($cell ) keepcellfmt
+        global cell = "B2"
+        export excel using "$xls_out", sheet("fig_2", modify) first(variable) cell($cell ) keepcellfmt
 	twoway bar percent deciles_pc
 	
 	*export excel using "Vat_sn", sheet("") sheetreplace first(variable)
@@ -182,8 +182,8 @@
 	if ("$country" == "MRT") ren informal_purchase share_informal_consumption
 	
 	collapse (mean) c_inf_mean=share_informal_consumption (p50) c_inf_p50=share_informal_consumption , by(decile_expenditure /*product_code*/)
-	global cell = "A35"
-        export excel using "$xls_out", sheet("Motivation", modify) first(variable) cell($cell ) keepcellfmt
+	global cell = "B2"
+        export excel using "$xls_out", sheet("fig_3", modify) first(variable) cell($cell ) keepcellfmt
 
     
 	*twoway rarea c_inf_mean c_inf_p50 decile_expenditure, title("Formality purchases across households by place of purchase​")
@@ -366,8 +366,8 @@
 	matlist A
 
 	* Print 
-	putexcel set "${xls_out}", sheet("output") modify
-	putexcel K1 = ("Revenue") K2 = matrix(A), names
+	putexcel set "${xls_out}", sheet("fig_4") modify
+	putexcel B1 = ("Revenue") B2 = matrix(A), names
 
 	shell ! "$xls_out"
 
@@ -409,8 +409,8 @@ ren in_v_TVA_indirect_pc_yd indirect_absolute_inc
 *ren [in_v_TVA_direct_pc_yd in_v_TVA_indirect_pc_yd] [direct_absolute_inc indirect_absolute_inc]
 keep decile  direct_absolute_inc indirect_absolute_inc 
 
-global cell = "B40"
-export excel using "$xls_out", sheet("TVA", modify) first(variable) cell($cell ) keepcellfmt
+global cell = "B2"
+export excel using "$xls_out", sheet("fig_5", modify) first(variable) cell($cell ) keepcellfmt
 
 restore
 
@@ -437,8 +437,8 @@ reshape wide v_, i(decile) j(variable) string
 drop if decile ==0
 keep decile *_yd
 
-global cell = "B55"
-export excel using "$xls_out", sheet("TVA", modify) first(variable) cell($cell ) keepcellfmt
+global cell = "B15"
+export excel using "$xls_out", sheet("fig_5", modify) first(variable) cell($cell ) keepcellfmt
 
 
 
@@ -448,7 +448,14 @@ export excel using "$xls_out", sheet("TVA", modify) first(variable) cell($cell )
 /// ---___---____------___---____--- Marginal contributions  of VAT---___---__---___// 
  
  *Figure of marginal contributions
+ 
+ import excel "$xls_sn", sheet(allVAT_foodexempt_GMB) firstrow clear // sim 4
+ 
  import excel "$xls_sn", sheet(allRef_2020_GMB) firstrow clear 
+ 
+ import excel "$xls_sn", sheet(allVAT_NoExempt_GMB_2020) firstrow clear
+ 
+ 
  
 *Effect of VAT on ymp inequality
 // total
@@ -495,20 +502,42 @@ sum value if concat=="ymp_inc_TVA_indirect_fgt0_zref_ymp_."
 assert r(N)==1
 local post = r(mean)
 local effect_6 = round(100*(`post'-`pre'),0.0001) 
+
+// poverty gap
+// total
+sum value if concat=="ymp_pc_fgt1_zref_ymp_."
+assert r(N)==1
+local pre = r(mean)
+sum value if concat=="ymp_inc_Tax_TVA_fgt1_zref_ymp_."
+assert r(N)==1
+local post = r(mean)
+local effect_7 = round(100*(`post'-`pre'),0.0001)
+
+// direct 
+sum value if concat=="ymp_inc_TVA_direct_fgt1_zref_ymp_."
+assert r(N)==1
+local post = r(mean)
+local effect_8 = round(100*(`post'-`pre'),0.0001)  
+
+// indirect 
+sum value if concat=="ymp_inc_TVA_indirect_fgt1_zref_ymp_."
+assert r(N)==1
+local post = r(mean)
+local effect_9 = round(100*(`post'-`pre'),0.0001) 
  
  
  clear 
- set obs 6
+ set obs 9
 gen mar =.
-forval n=1/6{
+forval n=1/9{
 	replace mar = `effect_`n'' in `n'
 }
  * export to excel 
- global cell = "B35"
- export excel using "$xls_out", sheet("output", modify) first(variable) cell($cell ) keepcellfmt
+ global cell = "C2"
+ export excel using "$xls_out", sheet("fig_6", modify) first(variable) cell($cell ) keepcellfmt
  
  
- 
+ qwe 
  
 /// ---___---____------___---____--- Marginal contributions  of Excises ---___---__---___// 
 

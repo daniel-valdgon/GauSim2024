@@ -28,6 +28,15 @@ global path     	"/Users/manganm/Documents/GitHub/Gamsim_2024"
 *Figure of marginal contributions
  import excel "$xls_sn", sheet(allRef_Exc_2020_GMB) firstrow clear 
  
+ 
+ import excel "$xls_sn", sheet(allExcises_ref) firstrow clear 
+ import excel "$xls_sn", sheet(allExcises_singood) firstrow clear 
+ import excel "$xls_sn", sheet(allExcises_sinTax) firstrow clear 
+ *import excel "$xls_sn", sheet(allExcises_Recycled) firstrow clear
+ *import excel "$xls_sn", sheet(allHealth_BH) firstrow clear
+ 
+* Excises_ref Excises_singood Excises_sinTax Excises_Recycled
+
  ** effects on poverty - Poverty Prevalence
  // total
 sum value if concat=="ymp_pc_fgt0_zref_ymp_."
@@ -48,15 +57,26 @@ assert r(N)==1
 local post = r(mean)
 local effect_2 = round(100*(`post'-`pre'),0.0001)
 
+// poverty gap
+sum value if concat=="ymp_pc_fgt1_zref_ymp_."
+assert r(N)==1
+local pre = r(mean)
+sum value if concat=="ymp_inc_excise_taxes_fgt1_zref_ymp_."
+assert r(N)==1
+local post = r(mean)
+local effect_3 = round(100*(`post'-`pre'),0.0001)
+
 clear 
-set obs 2
+set obs 3
 gen mar =.
-forval n=1/2{
+forval n=1/3{
 	replace mar = `effect_`n'' in `n'
 }
 * export to excel 
-global cell = "A1"
-export excel using "$xls_out", sheet("fig_1", modify) first(variable) cell($cell ) keepcellfmt
+global cell = "L3"
+export excel using "$xls_out", sheet("Marginal", modify) first(variable) cell($cell ) keepcellfmt
+global cell = "C26"
+export excel using "$xls_out", sheet("fig_6", modify) first(variable) cell($cell ) keepcellfmt
 
 
 

@@ -76,7 +76,7 @@ if "`c(username)'"=="wb419055" {
 	
 	*global presim       "${path}/01_data/2_pre_sim/MRT"
 
-	global numscenarios	3
+	global numscenarios	1
 	global coutryscen	"GMB GMB GMB GMB"	// Fill with the country of each simulation
 	global proj_1		"GMB_2020_Sub_ref" 
 	global proj_2		"GMB_2020_Sub_NoExemp" // subsidies and no exemption  

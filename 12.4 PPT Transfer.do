@@ -14,8 +14,8 @@ Update Date: 28 June 2024
 		global xls_out    	"${path}/03_Tool/trans_slides_${country}.xlsx"
 
 
-		*import excel "$xls_sn", sheet(allDir_trans_PMT_expand) firstrow clear 
-		import excel "$xls_sn", sheet(allRef_2020_Baseline) firstrow clear 
+        *import excel "$xls_sn", sheet(allDir_trans_PMT_expand) firstrow clear 
+		import excel "$xls_sn", sheet(allDir_trans_PMT_expand) firstrow clear 
 
 
 // Marginal contributions
@@ -79,17 +79,49 @@ preserve
 		assert r(N)==1
 		local post = r(mean)
 		local effect_8 = round(100*(`post'-`pre'),0.0001) 
+		
+		
+ ** effect on Poverty Gap
+ // total
+		sum value if concat=="ymp_pc_fgt1_zref_ymp_."
+		assert r(N)==1
+		local pre = r(mean)
+		sum value if concat=="ymp_inc_dirtransf_total_fgt1_zref_ymp_."
+		assert r(N)==1
+		local post = r(mean)
+		local effect_9 = round(100*(`post'-`pre'),0.0001)
+ 
+ // NAFA (Social transfers - BNSF for Senegal)
+		sum value if concat=="ymp_inc_am_BNSF_fgt1_zref_ymp_."
+		assert r(N)==1
+		local post = r(mean)
+		local effect_10 = round(100*(`post'-`pre'),0.0001)
+ 
+ // Cantines
+		sum value if concat=="ymp_inc_am_Cantine_fgt1_zref_ymp_."
+		assert r(N)==1
+		local post = r(mean)
+		local effect_11 = round(100*(`post'-`pre'),0.0001) 
+ 
+   
+ 
+ // Scholarships for students in higher education
+		sum value if concat=="ymp_inc_am_bourse_fgt1_zref_ymp_."
+		assert r(N)==1
+		local post = r(mean)
+		local effect_12 = round(100*(`post'-`pre'),0.0001) 
+ 
  
  // Create a matrix with the locals created	
 		clear 
-		set obs 8
+		set obs 12
 		gen mar =.
-		forval n=1/8{
+		forval n=1/12{
 			replace mar = `effect_`n'' in `n'
 		}
 		
 	* export to excel 
-		global cell = "B2"
+		global cell = "A2"
 		export excel using "$xls_out", sheet("fig_1", modify) first(variable) cell($cell) keepcellfmt
 		
 		*global cell = "B2"
@@ -172,8 +204,8 @@ restore
 
 // Total expenses
 
-global sheetname "Ref_2020_Baseline Dir_trans_PMT_expand Dir_trans_RND_expand Dir_trans_PMT_10 Dir_trans_RND_10"
-	global nsim 5		
+global sheetname "Ref_2020_Baseline Dir_trans_PMT_expand Dir_trans_RND_expand Dir_trans_PMT_10 Dir_trans_RND_10 Revenu_recycling_GMB"
+	global nsim 6		
 		
 		
 		

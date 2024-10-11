@@ -25,6 +25,7 @@ else{
 global depan achats_sans_subs
 
 
+
 *********************************************************
 *2. Calculate expenses from products with excises
 *********************************************************
@@ -65,13 +66,20 @@ forvalues j = 1/$n_excises_taux {
 	drop dum_`j'
 	
 	* Assing tax
-	gen double ex_`j' = dep_`j' * ${taux_ex_`j'}
+	*gen double ex_`j' = dep_`j' * ${taux_ex_`j'}(1 + ${elas_`j'})
+	// an engineer way; fast but dirty
+	if ($sin_beh ==1) gen double ex_`j' = dep_`j' * ${taux_ex_`j'} + dep_`j' * (${taux_ex_`j'} - ${ref_ex_`j'})*${elas_ex_`j'}
+	
+	if ($sin_beh ==0) gen double ex_`j' = dep_`j' * ${taux_ex_`j'}
 	
 	* Assign label
 	label var ex_`j' "Excise on ${prod_label_ex_`j'}"
 
 }
 }
+
+
+
 
 * Check
 *gen test = inlist(codpr, 137, 129, 44, 72, 501, 507)

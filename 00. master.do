@@ -1,4 +1,5 @@
 
+
 /*==============================================================================*\
  West Africa Mini Simulation Tool for indirect taxes (VAT)
  Authors: Madi Mangan, Gabriel Lombo, Daniel Valderrama
@@ -245,6 +246,13 @@ if ("$country" == "MRT") {
  include  "$thedo/01. Pullglobals.do"
 
 
+
+*-------------------------------------
+// 2. Direct Tax - PIT
+*------------------------------------- 
+ 
+qui: include "$thedo/02. Income Tax.do" 
+ 
 *-------------------------------------
 // 4. Direct Transfers
 *-------------------------------------

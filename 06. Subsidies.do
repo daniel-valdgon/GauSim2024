@@ -123,7 +123,7 @@ save `Elec_subsidies_direct_hhid'
 noi dis as result " 2. Subvention indirecte à l'Électricité                        "
 ************************************************************************************
 
-use "$presim/IO_Matrix.dta", clear 
+use "$presim/IO_Matrix_elec.dta", clear 
 
 *Shock
 gen shock=$subsidy_shock_elec if elec_sec==1
@@ -141,6 +141,107 @@ tempfile io_ind_elec
 save `io_ind_elec', replace
 
 
+/**********************************************************************************/
+noi dis as result " 3. Direct effect of fuel subsidies                           "
+/**********************************************************************************/
+
+use "$presim/06_fuels.dta", clear
+
+*Compute subsidy receive for each tranche of consumption 
+
+rename q_fuel q_fuel_hh 
+
+foreach pdto in petrol diesel Kerosene {
+	gen sub_`pdto'	= .
+	replace sub_`pdto'= (${mp_`pdto'}-${sp_`pdto'})*q_`pdto' 		
+}
+
+
+
+egen subsidy_fuel_direct=rowtotal(sub_petrol sub_diesel sub_Kerosene)  
+
+if $devmode== 1 {
+    save "$tempsim/fuel_dir_sub_hhid.dta", replace
+}
+tempfile fuel_dir_sub_hhid
+save `fuel_dir_sub_hhid'
+
+
+
+************************************************************************************
+noi dis as result " 4. Indirect effects of Fuel subsidies                         "
+************************************************************************************
+	
+// load IO
+use "$presim/IO_matrix.dta", clear // this does not seems the appropriate naming in teh senegal tool. Check with Andres
+
+*use "$presim/IO_percentage.dta", clear 
+cap ren sector Secteur
+
+gen shock = 0
+replace shock = $sr_petrol 	if Secteur==7  // Gasoline
+replace shock = $sr_Kerosene 			if Secteur==8  // Kerosene
+replace shock = $sr_diesel 	if Secteur==10 // Diesel and others
+
+	
+// Fixed 
+gen fixed=1 if inlist(Secteur,7,8,9,10,14,15,25,26,27) // health, education, electricity , oil 
+replace fixed=0 if fixed==.
+	
+	
+if $devmode== 1 {
+    save "$tempsim/IO_Matrix_check.dta", replace
+}
+
+des sect_*, varlist 
+local list "`r(varlist)'"
+
+// Cost push 
+costpush `list', fixed(fixed) price(shock) genptot(fuel_tot_shock) genpind(fuel_ind_shock) fix
+
+if $devmode== 1 {
+    save "$tempsim/fuel_ind_sim_Secteur.dta", replace
+}
+tempfile fuel_ind_sim_Secteur
+save `fuel_ind_sim_Secteur', replace 
+
+
+*-------- Welfare 
+// Adding indirect effect to database and expanding direct effect per product (codpr)
+
+use "$presim/05_netteddown_expenses_SY.dta", clear 
+cap ren sector Secteur
+merge m:1 Secteur using `fuel_ind_sim_Secteur', /* assert(matched using) */ keep(1 3) nogen  // this is a need to correct the IO_percentage file to the new IO matrix, this requires some more time.  
+
+merge m:1 hhid using `fuel_dir_sub_hhid' , assert(matched using) keep(match) nogen   
+
+gen subsidy_fuel_indirect=achats_net*fuel_ind_shock
+
+rename subsidy_fuel_direct subsidy_fuel_direct_hhidlevel
+gen subsidy_fuel_direct = 0
+replace subsidy_fuel_direct = sub_petrol*pourcentage*pondera_informal   if codpr==754
+replace subsidy_fuel_direct = sub_diesel*pourcentage*pondera_informal if codpr==276
+replace subsidy_fuel_direct = sub_Kerosene*pourcentage*pondera_informal  if codpr==44
+
+
+drop shock fixed fuel_ind_shock fuel_tot_shock q_* sub_*
+compress
+tempfile fuel_verylong
+save `fuel_verylong', replace 
+
+egen subvention_fuel=rowtotal(subsidy_fuel_indirect subsidy_fuel_direct)
+
+collapse (sum) subsidy_fuel_indirect subsidy_fuel_direct subvention_fuel (mean) subsidy_fuel_direct_hhidlevel, by(hhid)
+
+drop subsidy_fuel_direct_hhidlevel
+
+if $devmode== 1 {
+    save "$tempsim/Fuel_subsidies.dta", replace
+}
+tempfile Fuel_subsidies
+save `Fuel_subsidies', replace
+
+
 
 /***********************************************************************************
 *TESTS
@@ -148,7 +249,9 @@ save `io_ind_elec', replace
 
 *-------- Welfare 
 // Adding indirect effect to database and expanding direct effect per product (codpr)
-use "$presim/05_netteddown_expenses_SY.dta", clear 
+*use "$presim/05_netteddown_expenses_SY.dta", clear 
+use `fuel_verylong', clear
+cap ren Secteur sector
 
 merge m:1 hhid codpr using "$presim/08_subsidies_elect.dta", nogen keepusing(codpr_elec) keep(master match)
 
@@ -158,6 +261,7 @@ merge m:1 hhid using `Elec_subsidies_direct_hhid', nogen assert(using matched) k
 merge m:1 sector using `io_ind_elec', nogen assert(using matched) keep(matched)
 *merge m:1 sector using `io_ind_eau', nogen assert(using matched) keep(matched)
 
+*merge m:1 hhid codpr using `fuel_verylong', nogen assert(using matched) keep(matched)
 
 if $devmode== 1 {
     save "$presim/Subsidies_check_correct_netdown.dta", replace
@@ -173,7 +277,7 @@ replace subsidy_elec_direct = subsidy_elec_direct*pourcentage*pondera_informal
 *replace subsidy_eau_direct = subsidy_eau_direct*pourcentage*pondera_informal
 
 *gen achats_sans_subs_dir = achats_net - subsidy_fuel_direct - subsidy_elec_direct - subsidy_eau_direct
-gen achats_sans_subs_dir = achats_net - subsidy_elec_direct
+gen achats_sans_subs_dir = achats_net - subsidy_elec_direct - subsidy_fuel_direct
 
 
 if $asserts_ref2018 == 1{
@@ -189,7 +293,7 @@ gen subsidy_elec_indirect = achats_net * elec_ind_shock
 
 *gen achats_sans_subs = achats_sans_subs_dir - subsidy_fuel_indirect - subsidy_elec_indirect - subsidy_eau_indirect
 
-gen achats_sans_subs = achats_sans_subs_dir - subsidy_elec_indirect
+gen achats_sans_subs = achats_sans_subs_dir - subsidy_elec_indirect - subsidy_fuel_indirect
 
 
 if $asserts_ref2018 == 1{
@@ -208,7 +312,7 @@ save `Subsidies_verylong'
 
 
 * Create variables in cero
-foreach var in subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect subsidy_agric {
+foreach var in subsidy_eau_direct subsidy_eau_indirect subsidy_agric {
 	gen `var'=0
 }
 
