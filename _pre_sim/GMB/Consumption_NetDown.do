@@ -261,6 +261,24 @@ tempfile ind_effect_subs_SY
 save `ind_effect_subs_SY', replace
 
 
+
+/* ------------------------------------
+1.F. Custom Duties 
+------------------------------------*/
+clear
+		gen codpr=.
+		gen custom=.
+		local i=1
+		foreach prod of global products {
+			set obs `i'
+			qui replace codpr	 = `prod' in `i'
+			qui replace custom      = ${customrate_`prod'} if codpr==`prod' in `i'
+			local i=`i'+1
+		}
+		tempfile CUSTOMrates
+		save `CUSTOMrates'
+
+
 /* ------------------------------------
  ------------------------------------
 2. Netting down spending 
@@ -362,6 +380,14 @@ replace excise=0 if excise==.
 gen achats_net_excise = achats_net_VAT  / (1 + excise) 
 
 
+
+/*------------------------------------
+2.B Expenditures net from Custom
+ ------------------------------------*/
+merge m:1 codpr using `CUSTOMrates', nogen keep(master match) 
+gen achats_net_custom = achat_gross / ( (1 + (1-informal_purchase) * custom))
+
+
 /*------------------------------------
 2.C Expenditures net from Subsidies (indirect)
  ------------------------------------*/
@@ -394,7 +420,7 @@ replace subsidy_elec_SY = 0 if codpr_elec!=1 //Leave only affecting electricity 
 *gen subsidy_elec_SY = 4 * consumption_electricite
 
 *Direct subsidy fuel
-gen q_petrol     = achat_gross/${sp_petrol_SY}  	if inlist(codpr, 754) //
+gen q_petrol     = achat_gross/${sp_petrol_SY}  if inlist(codpr, 754) //
 gen q_diesel 	 = achat_gross/${sp_diesel_SY} 	if inlist(codpr, 276)     		 // 
 gen q_Kerosene   = achat_gross/${sp_Kerosene_SY}  if inlist(codpr, 44) 
 recode q_petrol q_diesel q_Kerosene (.=0)

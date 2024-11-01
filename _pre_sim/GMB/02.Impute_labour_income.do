@@ -146,7 +146,7 @@ ren (s4q11 hid) (sector hhid)
 gen pay_pit = .
       replace pay_pit = 1 if (ilo_lfs ==1 | ilo_lfs==2) & (s4q13 == 1) & (s4q16==1)
 	  replace pay_pit = 0 if pay_pit ==.
-	          label def pay_pit 1 "Pays PIT" 2 "Does not pay PIT"
+	          label def pay_pit 1 "Pays PIT" 0 "Does not pay PIT"
 			  label val pay_pit pay_pit
 			  label var pay_pit "Worker pays PIT"
 
@@ -177,6 +177,11 @@ merge m:1 hhid using `income', keep(match) nogen
 		gen empstat_2 = ilo_lfs ==1
 gen wave_1 =1
 gen empstat_3 = 0	
+
+
+gen entitled_pension_1 = .
+			replace entitled_pension_1 = 1 if (ilo_lfs ==1 | ilo_lfs==2) & (s4q13 == 1) & (s4q16==1)
+			replace entitled_pension_1 = 0 if entitled_pension_1 ==.
 	
 //  b. label Xs
 
@@ -195,7 +200,16 @@ gen empstat_3 = 0
 		lab var wave_1 "Interviewed during first wave"
 	
 gen totincome  = hhincome
-	
+
+		gen manager = s4q10 ==1
+		ren s4q10 occupation
+		gen manager_service = manager*sector_3
+		gen female_manager = manager*female
+		gen formal = pay_pit==1
+		gen formal_female = formal*female
+		gen edu_high = ilo_edu_isced11 >=8
+		gen manager_eduhigh = manager*edu_high
+
 	save "$presim/02_income_tax_GMB.dta", replace 	
 	
 	
@@ -209,7 +223,7 @@ gen totincome  = hhincome
 
 global xls_out		"${path}/03_Tool/Figure12_Direct_Taxes.xlsx"
 
-global Xind female age agesq ilo_edu_isced11 sector_* empstat_* 
+global Xind female age agesq ilo_edu_isced11 sector_* empstat_* manager manager_service formal formal_female female_manager edu_high manager_eduhigh
 global Xhh rural region 
 global Xs $Xind $Xhh
 
@@ -237,7 +251,7 @@ gen double lnLx=ln(hl_income/hhwork)
 		local duan = r(mean)
 
 	//  b. estimation plot
-qui coefplot Mincer, keep(hoursf female age agesq educy sector_1 sector_2 sector_3 empstat_1 empstat_2 empstat_3 rural) xline(0) title("Mincer regression results") byopts(xrescale) graphregion(col(white)) bgcol(white) eqlabels("labor incomes based", asequations)
+qui coefplot Mincer, keep(hoursf female age agesq educy sector_1 sector_2 sector_3 empstat_1 empstat_2 empstat_3 rural manager manager_service formal) xline(0) title("Mincer regression results") byopts(xrescale) graphregion(col(white)) bgcol(white) eqlabels("labor incomes based", asequations)
 graph export "${path}/03_Tool/Mincer_$iso3.png", replace
 putexcel F4 = image("${path}/03_Tool/Mincer_$iso3.png")
 
@@ -263,8 +277,18 @@ putexcel F4 = image("${path}/03_Tool/Mincer_$iso3.png")
 		replace li = exp(li)*`duan' // Duan's smearing estimator, see https://people.stat.sc.edu/hoyen/STAT704/Notes/Smearing.pdf
 		sum li
 	
-	save "$presim/02_income_tax_GMB_final.dta", replace 
-	qwe 
+save "$presim/02_income_tax_GMB_final.dta", replace 
+	
+if $devmode ==0 {
+save `02_income_tax_GMB_final', clear
+}
+if $devmode ==1 {
+save "$presim/02_income_tax_GMB_final.dta", replace 
+
+}
+
+
+qwe	
 /* -------------------------------------------------------------------------- */
 /*      C. All Household Variables                                            */
 /* -------------------------------------------------------------------------- */
@@ -275,7 +299,7 @@ use "$presim/01_menages2.dta", clear
 
 
 	
-	qwe
+	
 	
 * ------------------------------------------------------------------------------ -----------------------
 * ------------------------------------------------------------------------------ -----------------------
