@@ -89,6 +89,23 @@
 		}
 	
 	
+	
+	*==================================================================================
+	dis "==============              Custom Duties         					==========="
+	*==================================================================================
+	    import excel "$xls_sn", sheet("custom_raw") firstrow clear
+		drop if codpr==.
+		recode elasticities (.=0)
+		tempfile CUS_original
+		save `CUS_original'
+		levelsof codpr, local(products)
+		global products "`products'"
+		foreach z of local products {
+			*dis `z'
+			levelsof custom          if codpr==`z', local(customrate)
+			global customrate_`z' `customrate'
+		}
+	
 	*==================================================================================
 	dis "==============              Excises Taxes         					==========="
 	*==================================================================================

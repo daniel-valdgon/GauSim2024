@@ -40,6 +40,7 @@ merge 1:1 hhid using "${tempsim}/Subsidies" , nogen
 merge 1:1 hhid using "${tempsim}/Excise_taxes.dta" , nogen
 merge 1:1 hhid using "${tempsim}/VAT_taxes.dta", nogen 
 merge 1:1 hhid using "${tempsim}/Transfers_InKind.dta" , nogen
+merge 1:1 hhid using "${tempsim}/custom_duties.dta", nogen
 
 }
 else {
@@ -50,6 +51,7 @@ merge 1:1 hhid using `Subsidies' , nogen
 merge 1:1 hhid using `Excise_taxes' , nogen
 merge 1:1 hhid using `VAT_taxes' , nogen
 merge 1:1 hhid using `Transfers_InKind' , nogen
+merge 1:1 hhid using `Custom_duties' , nogen
 }
 
 *All policies, regarless of them being taxes or subsidies, should be positive 
@@ -62,7 +64,7 @@ gen ymp_pc=yd_pre
 	local Contributions 	"csh_css csh_ipm csh_mutsan" //(AGV) Note that csh_mutsan is created in 4.DirTransfers and not in 3.SSC (as it should). csp_ipr csp_fnr excluded because, in PDI, pension contributions are not included.
 	local DirectTransfers   "am_bourse am_Cantine am_BNSF am_subCMU rev_pubstu rev_universel" // (Madi) here I added rev_pubstu rev_universel for UBI or transfers to public school students
 	local subsidies         "subsidy_elec_direct subsidy_elec_indirect subsidy_fuel_direct subsidy_fuel_indirect subsidy_eau_direct subsidy_eau_indirect subsidy_agric"
-	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect"
+	local Indtaxes 			"excise_taxes TVA_direct TVA_indirect Custom"
 	local InKindTransfers	"education_inKind Sante_inKind am_sesame am_moin5 am_cesarienne" //(AGV) Note that  am_sesame am_moin5 am_cesarienne are created in the direct transfers file, but they act more like in kind transfers
 	local taxcs 			`Directaxes' `Indtaxes' `Contributions'
 	local transfers         `DirectTransfers' `subsidies' `InKindTransfers'
@@ -350,8 +352,8 @@ egen sscontribs_total_pc = rowtotal(`Contributions_pc')
 gen subsidy_total = subsidy_elec + subsidy_fuel + subsidy_eau + subsidy_agric
 gen subsidy_total_pc = subsidy_elec_pc + subsidy_fuel_pc + subsidy_eau_pc + subsidy_agric_pc
 
-gen indtax_total = excise_taxes + Tax_TVA
-gen indtax_total_pc = excise_taxes_pc + Tax_TVA_pc
+gen indtax_total = excise_taxes + Tax_TVA + Custom
+gen indtax_total_pc = excise_taxes_pc + Tax_TVA_pc + Custom_pc
 
 gen am_CMU_progs = am_sesame + am_moin5 + am_cesarienne
 gen am_CMU_progs_pc = am_sesame_pc + am_moin5_pc + am_cesarienne_pc
@@ -392,6 +394,7 @@ label var excise_taxes	"Droits d'Accise"
 label var Tax_TVA "TVA"
 label var TVA_direct	"Effet Direct TVA"
 label var TVA_indirect	"Effet Indirect TVA"
+label var Custom		"Custom Duties"
 label var inktransf_total	"Transferts en nature"
 label var Sante_inKind	"Santé (en nature)"
 label var education_inKind	"Éducation (en nature)"

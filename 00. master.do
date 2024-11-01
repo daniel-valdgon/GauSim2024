@@ -253,6 +253,14 @@ if ("$country" == "MRT") {
  
 qui: include "$thedo/02. Income Tax.do" 
  
+
+*-------------------------------------
+// 2. Direct Tax - PIT
+*-------------------------------------  
+
+qui: include "$thedo/03. SocialSecurityContributions.do"  
+ 
+ 
 *-------------------------------------
 // 4. Direct Transfers
 *-------------------------------------
@@ -290,6 +298,11 @@ if ($run_excises == 1) qui: include "$thedo/07. Excise_taxes.do"
 
 qui: include "$thedo/08. Indirect_taxes_newest.do"
 
+
+*-------------------------------------
+// 13. Customs Duties
+*-------------------------------------
+qui: include "$thedo/Custom_duties_GMB.do"
 *-------------------------------------
 // 9. In-kind Transfers
 *-------------------------------------
